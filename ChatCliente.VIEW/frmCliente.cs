@@ -16,19 +16,19 @@ namespace ChatCliente.VIEW
     {
         //VARIÁVEIS GLOBAIS
 
-        private bool _conectando = false;
         private bool _conectado = false;
-
-        public bool Conectando
-        {
-            get { return _conectando; }
-            set { _conectando = value; }
-        }
+        private CCliente _cliente = null;
 
         public bool Conectado
         {
             get { return _conectado; }
             set { _conectado = value; }
+        }
+
+        public CCliente Cliente
+        {
+            get { return _cliente; }
+            set { _cliente = value; }
         }
 
 
@@ -154,23 +154,27 @@ namespace ChatCliente.VIEW
         // Conectar
         private void Conectar()
         {
-            bool conectar = true;
-
             if (isMascaraValidada())
             {
-                btnConectar.Enabled = false;
-                CCliente Cliente = new CCliente();
-                // CCliente Cliente = new CServidor(mskIp.Text.Replace(" ", ""));
-
                 if (!Conectado)
                 {
                     // Conectando...
+                    btnConectar.Enabled = false;
                     btnConectar.Text = "Conectando...";
                     btnConectar.BackColor = Color.Silver;
 
-                    //
-                    Cliente.Conectar(mskIp.Text.Replace(" ", ""), txtUsuario.Text.Replace(" ", ""));
-                    //
+                    try
+                    {
+                        Cliente = new CCliente(mskIp.Text.Replace(" ", ""), txtUsuario.Text.Replace(" ", ""));
+                        //
+                        //
+                        Cliente.Conectar(true);
+                        //btnConectar.BackColor = Color.Blue;
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("Erro de conexão : " + e.Message);
+                    }
 
                     Conectado = true;
                     btnConectar.Text = "Conectado";
@@ -180,12 +184,13 @@ namespace ChatCliente.VIEW
                     // Desconectando...
                     btnConectar.Text = "Desconectando...";
 
-                    // Cliente.Conectar(false);
+                    Cliente.Conectar(false);
                     Conectado = false;
                     btnConectar.Text = "Conectar";
-                    btnConectar.BackColor = Color.Blue;
-                    //.
+                    btnConectar.ForeColor = Color.Aqua;
+                    //btnConectar.BackColor = Color.Blue;
                 }
+                Console.WriteLine("Cliente Conectado: " + Cliente.Conectado);
 
                 btnConectar.Enabled = true;
             }
