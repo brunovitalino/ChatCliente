@@ -14,14 +14,14 @@ namespace ChatCliente.CONTROLLER
     {
         //VARIÁVEIS GLOBAIS
 
-        private string _ip;
+        private string _ipServidor;
         private string _usuario;
         private bool _conectado;
 
-        public string Ip
+        public string IpServidor
         {
-            get { return _ip; }
-            set { _ip = value; }
+            get { return _ipServidor; }
+            set { _ipServidor = value; }
         }
 
         public string Usuario
@@ -43,9 +43,9 @@ namespace ChatCliente.CONTROLLER
         {
         }
 
-        public CCliente(string ip, string usuario)
+        public CCliente(string ipServidor, string usuario)
         {
-            Ip = ip;
+            IpServidor = ipServidor;
             Usuario = usuario;
             Conectado = false;
         }
@@ -56,14 +56,13 @@ namespace ChatCliente.CONTROLLER
         public void Conectar(bool conectar)
         {
             Console.WriteLine("thread1 in (Conectado:" + Conectado + ")");
-
-            if (conectar)
+            if (conectar && !Conectado)
             {
                 if (!Usuario.Equals(""))
                 {
                     Conectado = true;
                     // Inicia uma nova tread que fará nossa conexão.
-                    Thread ThreadConectar = new Thread(RunConectar);
+                    Thread ThreadConectar = new Thread(RunCliente);
                     ThreadConectar.Start();
                 }
             }
@@ -71,24 +70,17 @@ namespace ChatCliente.CONTROLLER
             {
                 Conectado = false;
             }
-
-            //
-            Thread t = new Thread(RunDelay);
-            t.Start();
-            t.Join();
-
             Console.WriteLine("thread1 out (Conectado:" + Conectado + ")");
         }
 
-        private void RunConectar()
+        public void RunCliente()
         {
             Console.WriteLine("thread2 in (Conectado:" + Conectado + ")");
-
             try
             {
                 // Socket de conexão ao servidor
                 TcpClient novoServidorSocket = new TcpClient();
-                novoServidorSocket.Connect(IPAddress.Parse(Ip), 2502);
+                novoServidorSocket.Connect(IPAddress.Parse(IpServidor), 2502);
 
                 StreamWriter Transmissor = new StreamWriter(novoServidorSocket.GetStream());
                 // Código 01: Tentativa de conexão.
@@ -101,23 +93,28 @@ namespace ChatCliente.CONTROLLER
                 while (true)
                 {
                     Thread.Sleep(1500);
-                    Console.WriteLine("Conectado: "+Conectado);
+                    Console.WriteLine("Laço Conectado: " + Conectado);
 
                     if (!Conectado)
                     {
-                        Console.WriteLine("Saindo!");
+                        Console.WriteLine("Laço break.");
                         break;
                     }
                 }
                 // As variáveis locais do try provavelmenta já vão para a fila do garbage, mas colocamos as próximas duas linhas para garantir fechamentyo de conexão.
                 Transmissor.Close();
                 novoServidorSocket.Close();
+                Transmissor = null;
+                novoServidorSocket = null;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.StackTrace);
             }
-
+            finally
+            {
+                Conectado = false;
+            }
             Console.WriteLine("thread2 out (Conectado:" + Conectado + ")");
         }
 
@@ -126,11 +123,5 @@ namespace ChatCliente.CONTROLLER
             Transmissor.WriteLine(mensagem);
             Transmissor.Flush();
         }*/
-
-        //
-        private static void RunDelay()
-        {
-            Thread.Sleep(1500);
-        }
     }
 }

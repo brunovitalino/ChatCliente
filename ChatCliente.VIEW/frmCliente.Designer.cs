@@ -32,7 +32,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.txtLog = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.mskIp = new System.Windows.Forms.MaskedTextBox();
+            this.mskIpServidor = new System.Windows.Forms.MaskedTextBox();
             this.btnConectar = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.lstSalas = new System.Windows.Forms.ListBox();
@@ -81,28 +81,28 @@
             this.label2.TabIndex = 7;
             this.label2.Text = "INÍCIO:";
             // 
-            // mskIp
+            // mskIpServidor
             // 
-            this.mskIp.BeepOnError = true;
-            this.mskIp.HidePromptOnLeave = true;
-            this.mskIp.InsertKeyMode = System.Windows.Forms.InsertKeyMode.Overwrite;
-            this.mskIp.Location = new System.Drawing.Point(38, 12);
-            this.mskIp.Mask = "099\\.099\\.099\\.099";
-            this.mskIp.Name = "mskIp";
-            this.mskIp.Size = new System.Drawing.Size(123, 20);
-            this.mskIp.TabIndex = 1;
-            this.mskIp.Text = "1270  0  1";
-            this.mskIp.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.toolTip1.SetToolTip(this.mskIp, "Digite o endereço IP no qual o servidor ficará hospedado.");
-            this.mskIp.MaskInputRejected += new System.Windows.Forms.MaskInputRejectedEventHandler(this.mskIp_MaskInputRejected);
-            this.mskIp.KeyDown += new System.Windows.Forms.KeyEventHandler(this.mskIp_KeyDown);
-            this.mskIp.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.mskIp_KeyPress);
-            this.mskIp.MouseHover += new System.EventHandler(this.mskIp_MouseHover);
+            this.mskIpServidor.BeepOnError = true;
+            this.mskIpServidor.HidePromptOnLeave = true;
+            this.mskIpServidor.InsertKeyMode = System.Windows.Forms.InsertKeyMode.Overwrite;
+            this.mskIpServidor.Location = new System.Drawing.Point(38, 12);
+            this.mskIpServidor.Mask = "099\\.099\\.099\\.099";
+            this.mskIpServidor.Name = "mskIpServidor";
+            this.mskIpServidor.Size = new System.Drawing.Size(123, 20);
+            this.mskIpServidor.TabIndex = 1;
+            this.mskIpServidor.Text = "1270  0  1";
+            this.mskIpServidor.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.toolTip1.SetToolTip(this.mskIpServidor, "Digite o endereço IP no qual o servidor ficará hospedado.");
+            this.mskIpServidor.MaskInputRejected += new System.Windows.Forms.MaskInputRejectedEventHandler(this.mskIp_MaskInputRejected);
+            this.mskIpServidor.KeyDown += new System.Windows.Forms.KeyEventHandler(this.mskIp_KeyDown);
+            this.mskIpServidor.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.mskIp_KeyPress);
+            this.mskIpServidor.MouseHover += new System.EventHandler(this.mskIp_MouseHover);
             // 
             // btnConectar
             // 
             this.btnConectar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnConectar.FlatAppearance.BorderColor = System.Drawing.Color.White;
+            this.btnConectar.FlatAppearance.BorderColor = System.Drawing.Color.Aqua;
             this.btnConectar.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Silver;
             this.btnConectar.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Gray;
             this.btnConectar.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -189,7 +189,7 @@
             // btnEnviar
             // 
             this.btnEnviar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnEnviar.FlatAppearance.BorderColor = System.Drawing.Color.White;
+            this.btnEnviar.FlatAppearance.BorderColor = System.Drawing.Color.Aqua;
             this.btnEnviar.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Silver;
             this.btnEnviar.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Gray;
             this.btnEnviar.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -217,7 +217,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            this.BackColor = System.Drawing.Color.MediumBlue;
             this.ClientSize = new System.Drawing.Size(461, 326);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.btnEnviar);
@@ -229,13 +229,14 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.lstSalas);
             this.Controls.Add(this.btnConectar);
-            this.Controls.Add(this.mskIp);
+            this.Controls.Add(this.mskIpServidor);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.txtLog);
             this.Controls.Add(this.label1);
             this.Name = "frmCliente";
             this.Text = "Cliente";
             this.TopMost = true;
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmCliente_FormClosing);
             this.Load += new System.EventHandler(this.frmServidor_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -247,7 +248,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox txtLog;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.MaskedTextBox mskIp;
+        private System.Windows.Forms.MaskedTextBox mskIpServidor;
         private System.Windows.Forms.Button btnConectar;
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.ListBox lstSalas;

@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ChatCliente.CONTROLLER;
+using System.Threading;
 
 namespace ChatCliente.VIEW
 {
@@ -61,11 +62,11 @@ namespace ChatCliente.VIEW
         {
             if (e.KeyChar.Equals('.'))
             {
-                for (int i = mskIp.SelectionStart; i < mskIp.MaskedTextProvider.Length; i++)
+                for (int i = mskIpServidor.SelectionStart; i < mskIpServidor.MaskedTextProvider.Length; i++)
                 {
-                    if (!mskIp.MaskedTextProvider.IsEditPosition(i))
+                    if (!mskIpServidor.MaskedTextProvider.IsEditPosition(i))
                     {
-                        mskIp.SelectionStart = i;
+                        mskIpServidor.SelectionStart = i;
                         // Após realizado o salto, não queremos que continue pelos campos seguintes.
                         // Então cancelamos as próximas iterações.
                         break;
@@ -77,7 +78,7 @@ namespace ChatCliente.VIEW
         private void mskIp_MaskInputRejected(object sender, MaskInputRejectedEventArgs e)
         {
             toolTip1.ToolTipTitle = "Entrada inválida";
-            toolTip1.Show("Desculpe, somente digitos (0-9) são permitidos.", mskIp, mskIp.Location, 3000);
+            toolTip1.Show("Desculpe, somente digitos (0-9) são permitidos.", mskIpServidor, mskIpServidor.Location, 3000);
         }
 
         private void mskIp_MouseHover(object sender, EventArgs e)
@@ -102,6 +103,15 @@ namespace ChatCliente.VIEW
             Conectar();
         }
 
+        private void frmCliente_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (Conectado)
+            {
+                Cliente.Conectar(false);
+            }
+            Application.Exit();
+        }
+
 
         //MÉTODOS
 
@@ -114,16 +124,16 @@ namespace ChatCliente.VIEW
             // Verifica se ao menos 1 posição, da lacuna que está sendo verificada, foi preenchida.
             bool espacoPreenchido = false;
 
-            for (int i = 0; i < mskIp.MaskedTextProvider.Length; i++)
+            for (int i = 0; i < mskIpServidor.MaskedTextProvider.Length; i++)
             {
                 // Com essa condição, toda a lógica será baseada sobre os campos editáveis apenas.
-                if (mskIp.MaskedTextProvider.IsEditPosition(i))
+                if (mskIpServidor.MaskedTextProvider.IsEditPosition(i))
                 {
                     // Atribuindo no inicio, fará com que o contador na sua primeira iteração já inicie com 1.
                     contador++;
 
                     // Verifica se esse espaço da lacuna não está vazio.
-                    if (!mskIp.GetCharFromPosition(mskIp.GetPositionFromCharIndex(i)).Equals('_'))  // Temos que usar underline, pois a propriedade HidePrompOnLeave que torna os underlines em espaços em branco está quebrada.
+                    if (!mskIpServidor.GetCharFromPosition(mskIpServidor.GetPositionFromCharIndex(i)).Equals('_'))  // Temos que usar underline, pois a propriedade HidePrompOnLeave que torna os underlines em espaços em branco está quebrada.
                     {                                                                               // Pois fica preenchendo as últimas posições (que vêm após a última noEditPosition) com o dígito da primeira posição.
                         espacoPreenchido = true;
                     }
@@ -135,7 +145,7 @@ namespace ChatCliente.VIEW
                         if (!espacoPreenchido)
                         {
                             toolTip1.ToolTipTitle = "Endereço IP inválido";
-                            toolTip1.Show("Desculpe, mas o endereço digitado não é válido. Digite um endereço válido.", mskIp, 2000);
+                            toolTip1.Show("Desculpe, mas o endereço digitado não é válido. Digite um endereço válido.", mskIpServidor, 2000);
                             return false;
                         }
                         else
@@ -156,44 +166,64 @@ namespace ChatCliente.VIEW
         {
             if (isMascaraValidada())
             {
+                // Tenta se Conectar.
                 if (!Conectado)
                 {
                     // Conectando...
                     btnConectar.Enabled = false;
                     btnConectar.Text = "Conectando...";
                     btnConectar.BackColor = Color.Silver;
-
-                    try
-                    {
-                        Cliente = new CCliente(mskIp.Text.Replace(" ", ""), txtUsuario.Text.Replace(" ", ""));
-                        //
-                        //
-                        Cliente.Conectar(true);
-                        //btnConectar.BackColor = Color.Blue;
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Erro de conexão : " + e.Message);
-                    }
-
-                    Conectado = true;
-                    btnConectar.Text = "Conectado";
+                    Cliente = new CCliente(mskIpServidor.Text.Replace(" ", ""), txtUsuario.Text.Replace(" ", ""));
+                    Cliente.Conectar(true);
                 }
                 else
                 {
                     // Desconectando...
+                    btnConectar.Enabled = false;
                     btnConectar.Text = "Desconectando...";
-
+                    btnConectar.BackColor = Color.Silver;
                     Cliente.Conectar(false);
+                    Cliente = null;
+                }
+
+                Console.WriteLine("Conectado antes:" + Conectado);
+                Thread t = new Thread(RunDelay);
+                t.Start();
+                t.Join(); //Espera a finalização da thread t para que o restante do algoritmo possa dar prosseguimento.
+                // Atualiza o valor de Conectado da camada VIEW.
+                if (Cliente != null)
+                {
+                    Conectado = Cliente.Conectado;
+                }
+                Console.WriteLine("Conectado dpois:" + Conectado);
+
+                // Resultado da tentativa de conexão.
+                if (Cliente!=null && Conectado)
+                {
+                    Conectado = true;
+                    btnConectar.Text = "Conectado";
+                    btnConectar.ForeColor = Color.Blue;
+                    btnConectar.BackColor = Color.Aqua;
+                    txtLog.AppendText("Conectado.\r\n");
+                }
+                else
+                {
                     Conectado = false;
+                    Cliente = null;
                     btnConectar.Text = "Conectar";
                     btnConectar.ForeColor = Color.Aqua;
-                    //btnConectar.BackColor = Color.Blue;
+                    btnConectar.BackColor = Color.MediumBlue;
+                    txtLog.AppendText("Não foi possível se conectar.\r\n");
                 }
-                Console.WriteLine("Cliente Conectado: " + Cliente.Conectado);
-
                 btnConectar.Enabled = true;
+                //MessageBox.Show("Erro de conexão : " + e.Message);
             }
+        }
+
+        //
+        private static void RunDelay()
+        {
+            Thread.Sleep(1500);
         }
 
     }
