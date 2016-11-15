@@ -8,11 +8,19 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+
 using ChatCliente.CONTROLLER;
 using System.Threading;
 
 namespace ChatCliente.VIEW
 {
+    //DELEGATE
+
+    public delegate void AtualizaLogCallBack(string mensagem);
+
+
+    //CLASS
+
     public partial class frmCliente : Form
     {
         //VARIÁVEIS GLOBAIS
@@ -103,6 +111,17 @@ namespace ChatCliente.VIEW
             Conectar();
         }
 
+        private void btnEnviar_Click(object sender, EventArgs e)
+        {
+            Cliente.EnviarMensagem(txtMensagem.Text);
+            txtMensagem.Text = "";
+        }
+
+        private void OnStatusChanged(object sender, StatusChangedEventArgs e)
+        {
+            this.Invoke(new AtualizaLogCallBack(AtualizaLog), new object[] { e.MensagemEvento });
+        }
+
         private void frmCliente_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (Conectado)
@@ -174,7 +193,19 @@ namespace ChatCliente.VIEW
                     btnConectar.Text = "Conectando...";
                     btnConectar.BackColor = Color.Silver;
                     Cliente = new CCliente(mskIpServidor.Text.Replace(" ", ""), txtUsuario.Text.Replace(" ", ""));
+                    CCliente.StatusChanged += new StatusChangedEventHandler(OnStatusChanged);
                     Cliente.Conectar(true);
+                    Console.WriteLine("Conectado antes:" + Conectado);
+                    Thread t = new Thread(RunDelay);
+                    t.Start();
+                    t.Join(); //Espera a finalização da thread t para que o restante do algoritmo possa dar prosseguimento.
+                    // Atualiza o valor de Conectado da camada VIEW.
+                    Conectado = Cliente.Conectado;
+                    Console.WriteLine("Conectado dpois:" + Conectado);
+                    if (!Conectado)
+                    {
+                        txtLog.AppendText("Não foi possível se conectar. ");
+                    }
                 }
                 else
                 {
@@ -184,21 +215,11 @@ namespace ChatCliente.VIEW
                     btnConectar.BackColor = Color.Silver;
                     Cliente.Conectar(false);
                     Cliente = null;
+                    Conectado = false;
                 }
-
-                Console.WriteLine("Conectado antes:" + Conectado);
-                Thread t = new Thread(RunDelay);
-                t.Start();
-                t.Join(); //Espera a finalização da thread t para que o restante do algoritmo possa dar prosseguimento.
-                // Atualiza o valor de Conectado da camada VIEW.
-                if (Cliente != null)
-                {
-                    Conectado = Cliente.Conectado;
-                }
-                Console.WriteLine("Conectado dpois:" + Conectado);
 
                 // Resultado da tentativa de conexão.
-                if (Cliente!=null && Conectado)
+                if (Conectado)
                 {
                     Conectado = true;
                     btnConectar.Text = "Conectado";
@@ -213,17 +234,23 @@ namespace ChatCliente.VIEW
                     btnConectar.Text = "Conectar";
                     btnConectar.ForeColor = Color.Aqua;
                     btnConectar.BackColor = Color.MediumBlue;
-                    txtLog.AppendText("Não foi possível se conectar.\r\n");
+                    txtLog.AppendText("Desconectado.\r\n");
                 }
                 btnConectar.Enabled = true;
+                Console.WriteLine("Conectado dpois2:" + Conectado);
                 //MessageBox.Show("Erro de conexão : " + e.Message);
             }
+        }
+
+        private void AtualizaLog(string mensagem)
+        {
+            txtLog.AppendText(mensagem + "\r\n");
         }
 
         //
         private static void RunDelay()
         {
-            Thread.Sleep(1500);
+            Thread.Sleep(5000);
         }
 
     }

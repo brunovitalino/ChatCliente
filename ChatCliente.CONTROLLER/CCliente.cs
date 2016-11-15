@@ -10,6 +10,13 @@ using System.Threading.Tasks;
 
 namespace ChatCliente.CONTROLLER
 {
+    //DELEGATES
+
+    public delegate void StatusChangedEventHandler(object sender, StatusChangedEventArgs e);
+
+
+    //CLASSE
+
     public class CCliente
     {
         //VARIÁVEIS GLOBAIS
@@ -17,6 +24,10 @@ namespace ChatCliente.CONTROLLER
         private string _ipServidor;
         private string _usuario;
         private bool _conectado;
+        private TcpClient ServidorSocket;
+        // Recptor global para que possamos fazer o controle através de outra thread externa.
+        private StreamReader Receptor;
+        private StreamWriter Transmissor;
 
         public string IpServidor
         {
@@ -48,10 +59,25 @@ namespace ChatCliente.CONTROLLER
             IpServidor = ipServidor;
             Usuario = usuario;
             Conectado = false;
+            ServidorSocket = null;
+            Receptor = null;
+            Transmissor = null;
         }
+
+        //EVENTOS
+
+        public static event StatusChangedEventHandler StatusChanged;
 
 
         //MÉTODOS
+
+        public static void OnStatusChanged(StatusChangedEventArgs e)
+        {
+            if (StatusChanged != null)
+            {
+                StatusChanged(null, e);
+            }
+        }
 
         public void Conectar(bool conectar)
         {
@@ -60,9 +86,7 @@ namespace ChatCliente.CONTROLLER
             {
                 if (!Usuario.Equals(""))
                 {
-                    Conectado = true;
-                    // Inicia uma nova tread que fará nossa conexão.
-                    Thread ThreadConectar = new Thread(RunCliente);
+                    Thread ThreadConectar = new Thread(RunConectar);
                     ThreadConectar.Start();
                 }
             }
@@ -73,55 +97,148 @@ namespace ChatCliente.CONTROLLER
             Console.WriteLine("thread1 out (Conectado:" + Conectado + ")");
         }
 
+
+        public void RunConectar()
+        {
+            Console.WriteLine("thread1.1 in (Conectado:" + Conectado + ")");
+            // Inicia uma nova tread que fará nossa conexão.
+            Thread ThreadCliente = new Thread(RunCliente);
+            ThreadCliente.Start();
+
+            // Se dentro de 2,5s não receber resposta, desconecte.
+            int tempoLimite = 0;
+            Console.WriteLine("COMECOU ESPERA");
+
+            // Tratamento da tentativa de conexão.
+            while (true)
+            {
+                if (Conectado)
+                {
+                    Console.WriteLine("conectado!");
+                    break;
+                }
+
+                Thread.Sleep(100);
+                tempoLimite += 100;
+
+                //Console.WriteLine("tempo limite: " + tempoLimite);
+                if (tempoLimite >= 2500)
+                {
+                    Console.WriteLine("Esgotado tempo limite: " + tempoLimite);
+                    Console.WriteLine("desconectado!");
+                    Conectado = false;
+                    break;
+                }
+            }
+
+            // Tratamento de desconexão. Libera os recursos para permitir o fechamento do aplicativo.
+            if (Conectado)
+            {
+                while (Conectado)
+                {
+                    // Recursos em uso.
+                }
+                // Após a desconexão, o laço anterior será finalizado e os recursos poderão ser liberados.
+                if (Receptor != null)
+                {
+                    //Receptor.Close();
+                }
+            }
+
+            Console.WriteLine("TERMINO ESPERA");
+            Console.WriteLine("thread1.1 out (Conectado:" + Conectado + ")");
+        }
+
         public void RunCliente()
         {
             Console.WriteLine("thread2 in (Conectado:" + Conectado + ")");
             try
             {
                 // Socket de conexão ao servidor
-                TcpClient novoServidorSocket = new TcpClient();
-                novoServidorSocket.Connect(IPAddress.Parse(IpServidor), 2502);
+                ServidorSocket = new TcpClient();
+                // Se o destino não existir, uma SocketException já será disparada automaticamente. Assim, Conectado ainda continuará false.
+                ServidorSocket.Connect(IPAddress.Parse(IpServidor), 2502);
+                Conectado = true;
 
-                StreamWriter Transmissor = new StreamWriter(novoServidorSocket.GetStream());
+                Transmissor = new StreamWriter(ServidorSocket.GetStream());
+                string resposta = "";
+                Receptor = new StreamReader(ServidorSocket.GetStream());
+
                 // Código 01: Tentativa de conexão.
                 // Após o envio do código, o servidor deve retornar o mesmo para confirmar a conexão.
+
                 Transmissor.WriteLine("01|" + Usuario);
                 Transmissor.Flush();
-                Console.WriteLine("01");
+                Console.WriteLine("Enviou 01");
 
-                //Mantém a conexão.
-                while (true)
+                resposta = Receptor.ReadLine();
+                if (resposta.Substring(0, 2).Equals("01"))
                 {
-                    Thread.Sleep(1500);
-                    Console.WriteLine("Laço Conectado: " + Conectado);
+                    Console.WriteLine("Recebeu 01 CONECTADO!");
+                    OnStatusChanged(new StatusChangedEventArgs("Conectado callback!"));
 
-                    if (!Conectado)
+                    // Mantém a conexão.
+                    while (true)
                     {
-                        Console.WriteLine("Laço break.");
-                        break;
+                        Thread.Sleep(500);
+
+                        // Código 00: Desconexão.
+                        if (!Conectado || resposta.Substring(0, 2).Equals("00"))
+                        {
+                            Transmissor.WriteLine("00");
+                            Transmissor.Flush();
+                            break;
+                        }
+                        // Código 10: Mensagem.
+                        else if (resposta.Substring(0, 2).Equals("10"))
+                        {
+                            OnStatusChanged(new StatusChangedEventArgs(resposta.Substring(3)));
+                        }
+                        else if (resposta.Substring(0, 2).Equals("11"))
+                        {
+                            // ~~
+                        }
+                        else
+                        {
+                            Transmissor.WriteLine("01");
+                            Transmissor.Flush();
+                        }
+
+                        resposta = Receptor.ReadLine();
                     }
                 }
-                // As variáveis locais do try provavelmenta já vão para a fila do garbage, mas colocamos as próximas duas linhas para garantir fechamentyo de conexão.
-                Transmissor.Close();
-                novoServidorSocket.Close();
-                Transmissor = null;
-                novoServidorSocket = null;
             }
-            catch (Exception e)
+            catch (SocketException e)
             {
-                Console.WriteLine(e.StackTrace);
+                Console.WriteLine("socket destino inalcançável");
+            }
+            catch (IOException e)
+            {
+                Console.WriteLine("resposta destino inexistente");
             }
             finally
             {
+                if (ServidorSocket != null)
+                {
+                    ServidorSocket.Close();
+                }
+
+                Console.WriteLine("finnaly");
                 Conectado = false;
             }
             Console.WriteLine("thread2 out (Conectado:" + Conectado + ")");
         }
 
-        /*public void EnviarMensagem(string mensagem)
+        public void EnviarMensagem(string mensagem)
         {
-            Transmissor.WriteLine(mensagem);
+            Transmissor.WriteLine("10|" + mensagem);
             Transmissor.Flush();
-        }*/
+        }
+
+        //
+        private static void RunDelay()
+        {
+            Thread.Sleep(3000);
+        }
     }
 }
